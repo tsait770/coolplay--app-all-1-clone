@@ -58,7 +58,7 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
@@ -486,7 +486,7 @@ export default function HomeScreen() {
             try {
               const html = exportFolderBookmarks(item.id, 'html');
               const json = exportFolderBookmarks(item.id, 'json');
-              const dir = FileSystem.documentDirectory ?? '';
+              const dir = FileSystem.documentDirectory;
               const htmlUri = dir + `bookmarks_${item.id}.html`;
               const jsonUri = dir + `bookmarks_${item.id}.json`;
               await FileSystem.writeAsStringAsync(htmlUri, html);
