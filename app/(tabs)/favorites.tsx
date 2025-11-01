@@ -186,7 +186,10 @@ export default function FavoritesScreen() {
             <Text style={styles.sectionTitle}>{t('bookmark_folders')}</Text>
             <TouchableOpacity 
               style={styles.deleteAllButton}
-              onPress={handleDeleteAllFolders}
+              onPress={() => {
+                console.log('[Favorites] Delete all button pressed');
+                handleDeleteAllFolders();
+              }}
               activeOpacity={0.7}
             >
               <Trash2 size={16} color={Colors.danger} />
@@ -205,6 +208,7 @@ export default function FavoritesScreen() {
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={() => {
+                    console.log('[Favorites] Add folder button pressed for category:', category.id);
                     setAddFolderCategory(category.id);
                     setShowAddFolderModal(true);
                   }}
@@ -258,7 +262,10 @@ export default function FavoritesScreen() {
           <Text style={styles.sectionTitle}>{t('management')}</Text>
           <TouchableOpacity
             style={styles.managementItem}
-            onPress={() => setShowCategoryManagement(true)}
+            onPress={() => {
+              console.log('[Favorites] Category management button pressed');
+              setShowCategoryManagement(true);
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.managementContent}>

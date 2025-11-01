@@ -606,8 +606,11 @@ export default function HomeScreen() {
         {/* Membership Status Card */}
         <TouchableOpacity 
           style={styles.membershipCard}
-          onPress={() => {}}
-          activeOpacity={0.8}
+          onPress={() => {
+            console.log('[Home] Membership card pressed');
+            // TODO: Navigate to subscription page
+          }}
+          activeOpacity={0.7}
         >
           <View style={styles.membershipHeader}>
             <View style={styles.membershipIconContainer}>
@@ -666,13 +669,21 @@ export default function HomeScreen() {
 
         {/* Feature Cards */}
         <View style={styles.featureContainer}>
-          <TouchableOpacity style={styles.featureCard} onPress={handleImportBookmarks}>
+          <TouchableOpacity 
+            style={styles.featureCard} 
+            onPress={handleImportBookmarks}
+            activeOpacity={0.7}
+          >
             <FileInput size={24} color={Colors.primary.accent} />
             <Text style={styles.featureTitle}>{t("feature_import")}</Text>
             <Text style={styles.featureDesc}>{t("feature_import_desc")}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.featureCard} onPress={handleSmartCategorize}>
+          <TouchableOpacity 
+            style={styles.featureCard} 
+            onPress={handleSmartCategorize}
+            activeOpacity={0.7}
+          >
             <Sparkles size={24} color={Colors.primary.accent} />
             <Text style={styles.featureTitle}>{t("feature_smart_category")}</Text>
             <Text style={styles.featureDesc}>{t("feature_smart_category_desc")}</Text>
@@ -690,7 +701,11 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.featureCard} onPress={handleCleanupBookmarks}>
+          <TouchableOpacity 
+            style={styles.featureCard} 
+            onPress={handleCleanupBookmarks}
+            activeOpacity={0.7}
+          >
             <Trash size={24} color={Colors.primary.accent} />
             <Text style={styles.featureTitle}>{t("feature_cleanup")}</Text>
             <Text style={styles.featureDesc}>{t("feature_cleanup_desc")}</Text>
@@ -704,7 +719,11 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.featureCard} onPress={handleExportBookmarks}>
+          <TouchableOpacity 
+            style={styles.featureCard} 
+            onPress={handleExportBookmarks}
+            activeOpacity={0.7}
+          >
             <FileEdit size={24} color={Colors.primary.accent} />
             <Text style={styles.featureTitle}>{t("feature_export")}</Text>
             <Text style={styles.featureDesc}>{t("feature_export_desc")}</Text>
@@ -723,7 +742,11 @@ export default function HomeScreen() {
             ListFooterComponent={
               <TouchableOpacity
                 style={styles.addFolderButton}
-                onPress={() => setShowAddFolderModal(true)}
+                onPress={() => {
+                  console.log('[Home] Add folder button pressed');
+                  setShowAddFolderModal(true);
+                }}
+                activeOpacity={0.7}
               >
                 <FolderPlus size={20} color={Colors.primary.accent} />
                 <Text style={styles.addFolderText}>{t("add_folder")}</Text>
