@@ -7,6 +7,9 @@ import { generateVerificationProcedure } from "@/backend/trpc/routes/device/gene
 import { verifyDeviceProcedure } from "@/backend/trpc/routes/device/verify-device/route";
 import { listDevicesProcedure } from "@/backend/trpc/routes/device/list-devices/route";
 import { removeDeviceProcedure } from "@/backend/trpc/routes/device/remove-device/route";
+import { getMembershipStatusProcedure } from "@/backend/trpc/routes/membership/get-status/route";
+import { logVoiceUsageProcedure } from "@/backend/trpc/routes/membership/log-voice-usage/route";
+import { verifyAgeProcedure } from "@/backend/trpc/routes/membership/verify-age/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -22,6 +25,11 @@ export const appRouter = createTRPCRouter({
     verifyDevice: verifyDeviceProcedure,
     listDevices: listDevicesProcedure,
     removeDevice: removeDeviceProcedure,
+  }),
+  membership: createTRPCRouter({
+    getStatus: getMembershipStatusProcedure,
+    logVoiceUsage: logVoiceUsageProcedure,
+    verifyAge: verifyAgeProcedure,
   }),
 });
 
