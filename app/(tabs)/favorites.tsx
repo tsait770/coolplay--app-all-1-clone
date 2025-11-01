@@ -31,11 +31,6 @@ export default function FavoritesScreen() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [addFolderCategory, setAddFolderCategory] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  
-  const handleFolderPress = (folderId: string) => {
-    setSelectedFolder(folderId);
-    console.log(`Selected folder: ${folderId}`);
-  };
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   
   const { width: screenWidth } = useWindowDimensions();
@@ -43,7 +38,6 @@ export default function FavoritesScreen() {
 
   const visibleCategories = useMemo(() => getVisibleCategories(), [getVisibleCategories]);
 
-  // Calculate folder counts for each category
   const categoryFolderData = useMemo(() => {
     return visibleCategories.map(category => {
       const categoryFolders = getFoldersByCategory(category.id);
@@ -60,9 +54,12 @@ export default function FavoritesScreen() {
     });
   }, [visibleCategories, getFoldersByCategory, getBookmarksByFolder]);
 
+  const handleFolderPress = useCallback((folderId: string) => {
+    setSelectedFolder(folderId);
+    console.log(`Selected folder: ${folderId}`);
+  }, []);
 
-
-  const handleAddFolder = () => {
+  const handleAddFolder = useCallback(() => {
     if (!newFolderName.trim() || !addFolderCategory) {
       Alert.alert(t('error'), t('folder_name_required'));
       return;
@@ -77,9 +74,9 @@ export default function FavoritesScreen() {
       setShowAddFolderModal(false);
       setAddFolderCategory(null);
     }
-  };
+  }, [newFolderName, addFolderCategory, categories, addFolder, t]);
 
-  const handleEditFolder = () => {
+  const handleEditFolder = useCallback(() => {
     if (!editingFolderName.trim() || !editingFolderId) {
       Alert.alert(t('error'), t('folder_name_required'));
       return;
@@ -89,9 +86,9 @@ export default function FavoritesScreen() {
     setEditingFolderName('');
     setEditingFolderId(null);
     setShowEditFolderModal(false);
-  };
+  }, [editingFolderName, editingFolderId, editFolder, t]);
 
-  const handleDeleteFolder = (folderId: string) => {
+  const handleDeleteFolder = useCallback((folderId: string) => {
     Alert.alert(
       t('confirm_delete'),
       t('confirm_delete_folder_message'),
@@ -104,9 +101,9 @@ export default function FavoritesScreen() {
         }
       ]
     );
-  };
+  }, [deleteFolder, t]);
 
-  const handleDeleteAllFolders = () => {
+  const handleDeleteAllFolders = useCallback(() => {
     Alert.alert(
       t('confirm_delete_all'),
       t('confirm_delete_all_folders_message'),
@@ -119,20 +116,20 @@ export default function FavoritesScreen() {
         }
       ]
     );
-  };
+  }, [deleteAllFolders, t]);
 
-  const openEditModal = (folderId: string, folderName: string) => {
+  const openEditModal = useCallback((folderId: string, folderName: string) => {
     setEditingFolderId(folderId);
     setEditingFolderName(folderName);
     setShowEditFolderModal(true);
-  };
+  }, []);
 
-  const handleExportFolder = async (folderId: string, folderName: string, format: 'html' | 'json') => {
+  const handleExportFolder = useCallback(async (folderId: string, folderName: string, format: 'html' | 'json') => {
     console.log(`Export folder ${folderId} as ${format}`);
     Alert.alert(t('info'), `Export ${folderName} as ${format} - Feature coming soon!`);
-  };
+  }, [t]);
 
-  const showFolderOptions = (folder: any) => {
+  const showFolderOptions = useCallback((folder: any) => {
     Alert.alert(
       t('folder_options'),
       '',
@@ -144,18 +141,53 @@ export default function FavoritesScreen() {
         { text: t('cancel'), style: 'cancel' }
       ]
     );
-  };
+  }, [openEditModal, handleExportFolder, handleDeleteFolder, t]);
+
+  const renderFolderItem = useCallback(({ item: folder }: { item: any }) => {
+    const bookmarkCount = getBookmarksByFolder(folder.id).length;
+    return (
+      <TouchableOpacity
+        key={folder.id}
+        style={styles.folderItem}
+        onPress={() => handleFolderPress(folder.id)}
+        onLongPress={() => showFolderOptions(folder)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.folderContent}>
+          <Folder size={20} color={Colors.primary.accent} />
+          <Text style={styles.folderName}>{folder.name}</Text>
+        </View>
+        <View style={styles.folderRight}>
+          <Text style={styles.folderCount}>{bookmarkCount}</Text>
+          <ChevronRight size={20} color={Colors.primary.textSecondary} />
+        </View>
+      </TouchableOpacity>
+    );
+  }, [getBookmarksByFolder, handleFolderPress, showFolderOptions]);
+
+  const renderBookmarkItem = useCallback(({ item: bookmark }: { item: any }) => (
+    <TouchableOpacity key={bookmark.id} style={styles.bookmarkItem}>
+      <View style={styles.bookmarkContent}>
+        <Heart size={20} color={Colors.danger} fill={Colors.danger} />
+        <View style={styles.bookmarkInfo}>
+          <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
+          <Text style={styles.bookmarkUrl} numberOfLines={1}>{bookmark.url}</Text>
+        </View>
+      </View>
+      <ChevronRight size={20} color={Colors.primary.textSecondary} />
+    </TouchableOpacity>
+  ), []);
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Bookmark Folders Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderContainer}>
             <Text style={styles.sectionTitle}>{t('bookmark_folders')}</Text>
             <TouchableOpacity 
               style={styles.deleteAllButton}
               onPress={handleDeleteAllFolders}
+              activeOpacity={0.7}
             >
               <Trash2 size={16} color={Colors.danger} />
               <Text style={styles.deleteAllText}>{t('delete_all')}</Text>
@@ -176,6 +208,7 @@ export default function FavoritesScreen() {
                     setAddFolderCategory(category.id);
                     setShowAddFolderModal(true);
                   }}
+                  activeOpacity={0.7}
                 >
                   <FolderPlus size={18} color={Colors.primary.accent} />
                 </TouchableOpacity>
@@ -184,27 +217,7 @@ export default function FavoritesScreen() {
               {category.folders.length > 0 ? (
                 <FlatList
                   data={category.folders}
-                  renderItem={({ item: folder }) => {
-                    const bookmarkCount = getBookmarksByFolder(folder.id).length;
-                    return (
-                      <TouchableOpacity
-                        key={folder.id}
-                        style={styles.folderItem}
-                        onPress={() => handleFolderPress(folder.id)}
-                        onLongPress={() => showFolderOptions(folder)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.folderContent}>
-                          <Folder size={20} color={Colors.primary.accent} />
-                          <Text style={styles.folderName}>{folder.name}</Text>
-                        </View>
-                        <View style={styles.folderRight}>
-                          <Text style={styles.folderCount}>{bookmarkCount}</Text>
-                          <ChevronRight size={20} color={Colors.primary.textSecondary} />
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  }}
+                  renderItem={renderFolderItem}
                   keyExtractor={(folder) => folder.id}
                   scrollEnabled={false}
                   removeClippedSubviews={true}
@@ -221,24 +234,12 @@ export default function FavoritesScreen() {
           ))}
         </View>
 
-        {/* Favorite Bookmarks Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('favorite_bookmarks')}</Text>
           {bookmarks.filter(b => b.favorite).length > 0 ? (
             <FlatList
               data={bookmarks.filter(b => b.favorite)}
-              renderItem={({ item: bookmark }) => (
-                <TouchableOpacity key={bookmark.id} style={styles.bookmarkItem}>
-                  <View style={styles.bookmarkContent}>
-                    <Heart size={20} color={Colors.danger} fill={Colors.danger} />
-                    <View style={styles.bookmarkInfo}>
-                      <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
-                      <Text style={styles.bookmarkUrl} numberOfLines={1}>{bookmark.url}</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} color={Colors.primary.textSecondary} />
-                </TouchableOpacity>
-              )}
+              renderItem={renderBookmarkItem}
               keyExtractor={(bookmark) => bookmark.id}
               scrollEnabled={false}
               removeClippedSubviews={true}
@@ -253,12 +254,12 @@ export default function FavoritesScreen() {
           )}
         </View>
 
-        {/* Management Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('management')}</Text>
           <TouchableOpacity
             style={styles.managementItem}
             onPress={() => setShowCategoryManagement(true)}
+            activeOpacity={0.7}
           >
             <View style={styles.managementContent}>
               <Edit2 size={20} color={Colors.primary.accent} />
@@ -274,7 +275,6 @@ export default function FavoritesScreen() {
         </View>
       </ScrollView>
 
-      {/* Add Folder Modal */}
       <Modal
         visible={showAddFolderModal}
         animationType="slide"
@@ -285,40 +285,51 @@ export default function FavoritesScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
-            <Text style={styles.modalTitle}>{t('add_new_folder')}</Text>
-            
-            <TextInput
-              style={styles.input}
-              value={newFolderName}
-              onChangeText={setNewFolderName}
-              placeholder={t('folder_name')}
-              placeholderTextColor="#999"
-            />
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalButton}
-                onPress={handleAddFolder}
-              >
-                <Text style={styles.modalButtonText}>{t('add')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalCancelButton]}
-                onPress={() => {
-                  setShowAddFolderModal(false);
-                  setNewFolderName('');
-                  setAddFolderCategory(null);
-                }}
-              >
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-              </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              setShowAddFolderModal(false);
+              setNewFolderName('');
+              setAddFolderCategory(null);
+            }}
+          >
+            <View style={[styles.modalContent, isTablet && styles.modalContentTablet]} onStartShouldSetResponder={() => true}>
+              <Text style={styles.modalTitle}>{t('add_new_folder')}</Text>
+              
+              <TextInput
+                style={styles.input}
+                value={newFolderName}
+                onChangeText={setNewFolderName}
+                placeholder={t('folder_name')}
+                placeholderTextColor="#999"
+              />
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.modalButton}
+                  onPress={handleAddFolder}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalButtonText}>{t('add')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setShowAddFolderModal(false);
+                    setNewFolderName('');
+                    setAddFolderCategory(null);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalCancelText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Edit Folder Modal */}
       <Modal
         visible={showEditFolderModal}
         animationType="slide"
@@ -329,40 +340,51 @@ export default function FavoritesScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
-            <Text style={styles.modalTitle}>{t('edit_folder')}</Text>
-            
-            <TextInput
-              style={styles.input}
-              value={editingFolderName}
-              onChangeText={setEditingFolderName}
-              placeholder={t('folder_name')}
-              placeholderTextColor="#999"
-            />
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalButton}
-                onPress={handleEditFolder}
-              >
-                <Text style={styles.modalButtonText}>{t('save')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalCancelButton]}
-                onPress={() => {
-                  setShowEditFolderModal(false);
-                  setEditingFolderName('');
-                  setEditingFolderId(null);
-                }}
-              >
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-              </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              setShowEditFolderModal(false);
+              setEditingFolderName('');
+              setEditingFolderId(null);
+            }}
+          >
+            <View style={[styles.modalContent, isTablet && styles.modalContentTablet]} onStartShouldSetResponder={() => true}>
+              <Text style={styles.modalTitle}>{t('edit_folder')}</Text>
+              
+              <TextInput
+                style={styles.input}
+                value={editingFolderName}
+                onChangeText={setEditingFolderName}
+                placeholder={t('folder_name')}
+                placeholderTextColor="#999"
+              />
+              
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.modalButton}
+                  onPress={handleEditFolder}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalButtonText}>{t('save')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setShowEditFolderModal(false);
+                    setEditingFolderName('');
+                    setEditingFolderId(null);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalCancelText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Category Management Modal */}
       <CategoryManagement
         visible={showCategoryManagement}
         onClose={() => setShowCategoryManagement(false)}

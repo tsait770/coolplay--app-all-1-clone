@@ -74,6 +74,9 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
       if (toggleFavoriteTimeoutRef.current) {
         clearTimeout(toggleFavoriteTimeoutRef.current);
       }
+      if (saveQueueRef.current) {
+        clearTimeout(saveQueueRef.current);
+      }
     };
   }, []);
 
@@ -94,13 +97,16 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
 
   const { categories } = useCategories();
   const categoriesStringRef = useRef<string>('');
+  const isSyncingCategoriesRef = useRef(false);
   
   useEffect(() => {
     if (!categories || categories.length === 0) return;
+    if (isSyncingCategoriesRef.current) return;
     
     const categoriesString = JSON.stringify(categories.map(c => ({ id: c.id, name: c.name })));
     if (categoriesStringRef.current === categoriesString) return;
     categoriesStringRef.current = categoriesString;
+    isSyncingCategoriesRef.current = true;
     
     setFolders(prev => {
       const map = new Map(prev.map(f => [f.id, f] as const));
@@ -138,10 +144,10 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
         kept.push(f);
       });
       const sorted = sortFolders(kept);
-      saveData(bookmarks, sorted).catch(() => {});
+      isSyncingCategoriesRef.current = false;
       return sorted;
     });
-  }, [categories, bookmarks, sortFolders]);
+  }, [categories, sortFolders]);
 
   const loadData = async () => {
     try {
@@ -201,6 +207,11 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
   const isSavingRef = useRef(false);
 
   const saveData = useCallback(async (newBookmarks: Bookmark[], newFolders: BookmarkFolder[]) => {
+    if (isSavingRef.current) {
+      pendingSaveRef.current = { bookmarks: newBookmarks, folders: newFolders };
+      return;
+    }
+    
     pendingSaveRef.current = { bookmarks: newBookmarks, folders: newFolders };
     
     if (saveTimeoutRef.current) {
@@ -208,28 +219,19 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
     }
     
     saveTimeoutRef.current = setTimeout(async () => {
-      if (isSavingRef.current) return;
-      
       const toSave = pendingSaveRef.current;
       if (!toSave) return;
       
       isSavingRef.current = true;
-      const startTime = Date.now();
       
       try {
-        // Ensure proper UTF-8 encoding for emoji and special characters
         const bookmarksJson = JSON.stringify(toSave.bookmarks, null, 0);
         const foldersJson = JSON.stringify(toSave.folders, null, 0);
-        
-        console.log(`[BookmarkProvider] Saving ${toSave.bookmarks.length} bookmarks, ${toSave.folders.length} folders`);
         
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.BOOKMARKS, bookmarksJson),
           AsyncStorage.setItem(STORAGE_KEYS.FOLDERS, foldersJson),
         ]);
-        
-        const duration = Date.now() - startTime;
-        console.log(`[BookmarkProvider] Save completed in ${duration}ms`);
         
         pendingSaveRef.current = null;
       } catch (error) {
@@ -237,7 +239,7 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
       } finally {
         isSavingRef.current = false;
       }
-    }, 300);
+    }, 500);
   }, []);
 
   const addBookmark = useCallback((bookmark: Omit<Bookmark, "id" | "addedOn">) => {
@@ -285,9 +287,11 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
   }, []);
   
   const lastSaveRef = useRef({ bookmarks: '', folders: '' });
+  const saveQueueRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   useEffect(() => {
     if (isLoading) return;
+    if (isSyncingCategoriesRef.current) return;
     
     const bookmarksStr = JSON.stringify(bookmarks);
     const foldersStr = JSON.stringify(folders);
@@ -297,8 +301,15 @@ export const [BookmarkProvider, useBookmarks] = createContextHook(() => {
       return;
     }
     
-    lastSaveRef.current = { bookmarks: bookmarksStr, folders: foldersStr };
-    saveData(bookmarks, folders);
+    if (saveQueueRef.current) {
+      clearTimeout(saveQueueRef.current);
+    }
+    
+    saveQueueRef.current = setTimeout(() => {
+      lastSaveRef.current = { bookmarks: bookmarksStr, folders: foldersStr };
+      saveData(bookmarks, folders);
+      saveQueueRef.current = null;
+    }, 500);
   }, [bookmarks, folders, isLoading, saveData]);
 
   const toggleFavoriteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
