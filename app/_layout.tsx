@@ -23,6 +23,7 @@ import VoiceOnboardingModal from "@/components/VoiceOnboardingModal";
 import { SoundProvider } from "@/providers/SoundProvider";
 import { MembershipProvider } from "@/providers/MembershipProvider";
 import { RatingProvider } from "@/providers/RatingProvider";
+import { PayPalProvider } from "@/providers/PayPalProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -353,7 +354,8 @@ export default function RootLayout() {
               <LanguageProvider>
                 <AuthProvider>
                   <StripeProvider>
-                    <MembershipProvider>
+                    <PayPalProvider>
+                      <MembershipProvider>
                       <RatingProvider>
                         <CategoryProvider>
                           <BookmarkProvider>
@@ -371,7 +373,8 @@ export default function RootLayout() {
                           </BookmarkProvider>
                         </CategoryProvider>
                       </RatingProvider>
-                    </MembershipProvider>
+                      </MembershipProvider>
+                    </PayPalProvider>
                   </StripeProvider>
                 </AuthProvider>
               </LanguageProvider>

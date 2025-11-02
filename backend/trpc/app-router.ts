@@ -10,6 +10,10 @@ import { removeDeviceProcedure } from "@/backend/trpc/routes/device/remove-devic
 import { getMembershipStatusProcedure } from "@/backend/trpc/routes/membership/get-status/route";
 import { logVoiceUsageProcedure } from "@/backend/trpc/routes/membership/log-voice-usage/route";
 import { verifyAgeProcedure } from "@/backend/trpc/routes/membership/verify-age/route";
+import { createSubscriptionProcedure } from "@/backend/trpc/routes/paypal/create-subscription/route";
+import { activateSubscriptionProcedure } from "@/backend/trpc/routes/paypal/activate-subscription/route";
+import { cancelSubscriptionProcedure as cancelPayPalSubscriptionProcedure } from "@/backend/trpc/routes/paypal/cancel-subscription/route";
+import { getSubscriptionProcedure } from "@/backend/trpc/routes/paypal/get-subscription/route";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -30,6 +34,12 @@ export const appRouter = createTRPCRouter({
     getStatus: getMembershipStatusProcedure,
     logVoiceUsage: logVoiceUsageProcedure,
     verifyAge: verifyAgeProcedure,
+  }),
+  paypal: createTRPCRouter({
+    createSubscription: createSubscriptionProcedure,
+    activateSubscription: activateSubscriptionProcedure,
+    cancelSubscription: cancelPayPalSubscriptionProcedure,
+    getSubscription: getSubscriptionProcedure,
   }),
 });
 
