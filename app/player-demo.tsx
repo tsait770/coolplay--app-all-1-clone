@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import UniversalVideoPlayer from '@/components/UniversalVideoPlayer';
 import AgeVerificationModal from '@/components/AgeVerificationModal';
 import { detectVideoSource, getSupportedPlatforms, getVideoFormatSupport } from '@/utils/videoSourceDetector';
 import { parseVoiceCommand, getSupportedLanguages } from '@/utils/voiceCommandParser';
+import { useNativeSpeechRecognition } from '@/hooks/useNativeSpeechRecognition';
 import { useMembership } from '@/providers/MembershipProvider';
 import Colors from '@/constants/colors';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -28,6 +29,21 @@ export default function PlayerDemoScreen() {
   const [currentUrl, setCurrentUrl] = useState('');
   const [showAgeVerification, setShowAgeVerification] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+
+  const {
+    isListening,
+    isProcessing,
+    transcript,
+    parsedCommand,
+    error: speechError,
+    startListening: startSpeech,
+    stopListening: stopSpeech,
+    resetTranscript,
+  } = useNativeSpeechRecognition({
+    language: 'en',
+    continuous: false,
+    interimResults: true,
+  });
 
   const handlePlayUrl = () => {
     if (!url.trim()) {
@@ -74,6 +90,34 @@ export default function PlayerDemoScreen() {
       `Type: ${parsed.type}\nValue: ${parsed.value || 'N/A'}\nUnit: ${parsed.unit || 'N/A'}`
     );
   };
+
+  const handleVoiceRecognition = async () => {
+    if (isListening) {
+      await stopSpeech();
+    } else {
+      resetTranscript();
+      await startSpeech();
+    }
+  };
+
+  useEffect(() => {
+    if (parsedCommand && parsedCommand.type !== 'unknown') {
+      console.log('[PlayerDemo] Parsed command:', parsedCommand);
+      Alert.alert(
+        'Voice Command Detected',
+        `Command: ${parsedCommand.type}\nText: "${parsedCommand.originalText}"\nConfidence: ${(parsedCommand.confidence * 100).toFixed(0)}%`,
+        [
+          { text: 'OK', onPress: resetTranscript },
+        ]
+      );
+    }
+  }, [parsedCommand]);
+
+  useEffect(() => {
+    if (speechError) {
+      Alert.alert('Speech Recognition Error', speechError);
+    }
+  }, [speechError]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -177,6 +221,30 @@ export default function PlayerDemoScreen() {
           {/* Voice Command Test Section */}
           <View style={styles.voiceSection}>
             <Text style={styles.sectionTitle}>Voice Command Test</Text>
+            
+            {/* Native Speech Recognition */}
+            <TouchableOpacity
+              style={[
+                styles.voiceButton,
+                styles.nativeSpeechButton,
+                isListening && styles.voiceButtonActive,
+              ]}
+              onPress={handleVoiceRecognition}
+              disabled={isProcessing}
+            >
+              <Mic size={24} color={isListening ? Colors.semantic.danger : Colors.primary.text} />
+              <View style={styles.voiceButtonTextContainer}>
+                <Text style={styles.voiceButtonText}>
+                  {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to Speak'}
+                </Text>
+                {transcript && (
+                  <Text style={styles.transcriptText}>{transcript}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            <Text style={styles.dividerText}>Or test with pre-defined commands:</Text>
+
             <TouchableOpacity
               style={styles.voiceButton}
               onPress={() => testVoiceCommand('play', 'en')}
@@ -379,6 +447,31 @@ const styles = StyleSheet.create({
   voiceButtonText: {
     fontSize: 14,
     color: Colors.primary.text,
+  },
+  nativeSpeechButton: {
+    paddingVertical: 20,
+    backgroundColor: Colors.primary.bgTertiary,
+    borderWidth: 2,
+    borderColor: Colors.primary.accent,
+  },
+  voiceButtonActive: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: Colors.semantic.danger,
+  },
+  voiceButtonTextContainer: {
+    flex: 1,
+    gap: 4,
+  },
+  transcriptText: {
+    fontSize: 12,
+    color: Colors.primary.accent,
+    fontStyle: 'italic',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: Colors.primary.textTertiary,
+    textAlign: 'center',
+    marginVertical: 12,
   },
   samplesSection: {
     marginBottom: 24,
