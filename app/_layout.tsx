@@ -3,7 +3,7 @@ import { trpc, trpcClient } from "@/lib/trpc";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useCallback, Component, ReactNode } from "react";
-import { StyleSheet, Platform, Alert, View, Text } from "react-native";
+import { StyleSheet, Platform, Alert, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 // eslint-disable-next-line @rork/linters/rsp-no-asyncstorage-direct
@@ -30,7 +30,7 @@ const queryClient = new QueryClient();
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean; error?: Error }
+  { hasError: boolean; error?: Error; errorInfo?: string }
 > {
   constructor(props: { children: ReactNode }) {
     super(props);
@@ -38,19 +38,37 @@ class ErrorBoundary extends Component<
   }
 
   static getDerivedStateFromError(error: Error) {
+    console.error('[ErrorBoundary] Error caught:', error);
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: unknown) {
-    console.error('Error Boundary caught an error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('[ErrorBoundary] Component stack:', errorInfo?.componentStack);
+    this.setState({ errorInfo: errorInfo?.componentStack || 'No stack info' });
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Something went wrong</Text>
-          <Text style={styles.errorSubtext}>Please refresh the app</Text>
+          <Text style={styles.errorText}>App Error</Text>
+          <Text style={styles.errorSubtext}>
+            {this.state.error?.message || 'Unknown error'}
+          </Text>
+          <Text style={[styles.errorSubtext, { fontSize: 10, marginTop: 10 }]}>
+            {this.state.errorInfo?.substring(0, 200)}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => this.setState({ hasError: false, error: undefined })}
+            style={{
+              marginTop: 20,
+              padding: 15,
+              backgroundColor: Colors.primary.accent,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: Colors.primary.text }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -317,7 +335,11 @@ export default function RootLayout() {
   if (!isInitialized) {
     return (
       <View style={styles.loadingContainer} testID="app-loading">
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color={Colors.primary.accent} />
+        <Text style={styles.loadingText}>Initializing App...</Text>
+        <Text style={[styles.loadingText, { fontSize: 12, marginTop: 10, opacity: 0.6 }]}>
+          Please wait
+        </Text>
       </View>
     );
   }

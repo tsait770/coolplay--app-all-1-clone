@@ -58,7 +58,7 @@ import { useCategories } from "@/providers/CategoryProvider";
 import { useMembership } from "@/providers/MembershipProvider";
 import ReferralCodeModal from "@/components/ReferralCodeModal";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as Sharing from "expo-sharing";
@@ -216,7 +216,26 @@ export default function HomeScreen() {
   const handleExportBookmarks = async () => {
     try {
       const html = exportBookmarks("html");
-      const fileUri = FileSystem.documentDirectory + "bookmarks.html";
+      
+      if (Platform.OS === 'web') {
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'bookmarks.html';
+        link.click();
+        URL.revokeObjectURL(url);
+        Alert.alert(t("success"), t("export_bookmarks"));
+        return;
+      }
+      
+      // For native platforms
+      const cacheDir = FileSystem.cacheDirectory;
+      if (!cacheDir) {
+        Alert.alert(t("error"), "Cache directory not available");
+        return;
+      }
+      const fileUri = cacheDir + "bookmarks.html";
       await FileSystem.writeAsStringAsync(fileUri, html);
       
       if (Platform.OS !== 'web' && await Sharing.isAvailableAsync()) {
@@ -484,14 +503,23 @@ export default function HomeScreen() {
           onPress={() => setCurrentFolder(item.id)}
           onLongPress={async () => {
             try {
+              if (Platform.OS === 'web') {
+                Alert.alert(t('info'), 'Long press export not available on web');
+                return;
+              }
+              
               const html = exportFolderBookmarks(item.id, 'html');
               const json = exportFolderBookmarks(item.id, 'json');
-              const dir = FileSystem.documentDirectory;
-              const htmlUri = dir + `bookmarks_${item.id}.html`;
-              const jsonUri = dir + `bookmarks_${item.id}.json`;
+              const cacheDir = FileSystem.cacheDirectory;
+              if (!cacheDir) {
+                Alert.alert(t("error"), "Cache directory not available");
+                return;
+              }
+              const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
+              const jsonUri = cacheDir + `bookmarks_${item.id}.json`;
               await FileSystem.writeAsStringAsync(htmlUri, html);
               await FileSystem.writeAsStringAsync(jsonUri, json);
-              if (Platform.OS !== 'web' && (await Sharing.isAvailableAsync())) {
+              if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(htmlUri);
               } else {
                 Alert.alert(t('success'), t('export_bookmarks'));
