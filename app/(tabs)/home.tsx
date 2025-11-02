@@ -67,6 +67,22 @@ import { useStorage } from "@/providers/StorageProvider";
 
 const { width: screenWidth } = Dimensions.get("window");
 
+// Helper to get cache directory safely
+const getCacheDirectory = () => {
+  try {
+    // For web, we can't use file system
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    // Use the FileSystem API - note: the actual property name may vary by version
+    const cacheDir = (FileSystem as any).cacheDirectory;
+    return cacheDir || null;
+  } catch (error) {
+    console.error('Error getting cache directory:', error);
+    return null;
+  }
+};
+
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { userData } = useReferral();
@@ -230,15 +246,15 @@ export default function HomeScreen() {
       }
       
       // For native platforms
-      const cacheDir = FileSystem.cacheDirectory;
+      const cacheDir = getCacheDirectory();
       if (!cacheDir) {
-        Alert.alert(t("error"), "Cache directory not available");
+        Alert.alert(t("error"), "File system not available");
         return;
       }
       const fileUri = cacheDir + "bookmarks.html";
       await FileSystem.writeAsStringAsync(fileUri, html);
       
-      if (Platform.OS !== 'web' && await Sharing.isAvailableAsync()) {
+      if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri);
       } else {
         Alert.alert(t("success"), t("export_bookmarks"));
@@ -510,9 +526,9 @@ export default function HomeScreen() {
               
               const html = exportFolderBookmarks(item.id, 'html');
               const json = exportFolderBookmarks(item.id, 'json');
-              const cacheDir = FileSystem.cacheDirectory;
+              const cacheDir = getCacheDirectory();
               if (!cacheDir) {
-                Alert.alert(t("error"), "Cache directory not available");
+                Alert.alert(t("error"), "File system not available");
                 return;
               }
               const htmlUri = cacheDir + `bookmarks_${item.id}.html`;
