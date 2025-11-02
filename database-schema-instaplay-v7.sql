@@ -180,7 +180,50 @@ CREATE POLICY "Users can insert own logs" ON public.voice_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- =====================================================
--- 5. BOOKMARKS TABLE (User Bookmarks)
+-- 5. FOLDERS TABLE (Bookmark Organization)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.folders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  parent_folder_id UUID REFERENCES public.folders(id) ON DELETE CASCADE,
+  
+  -- Folder details
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT, -- Icon name or emoji
+  color TEXT, -- Hex color code
+  
+  -- Auto-categorization rules
+  auto_categorize BOOLEAN DEFAULT FALSE,
+  keywords TEXT[], -- Keywords for automatic categorization
+  
+  -- Organization
+  sort_order INTEGER DEFAULT 0,
+  
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(user_id, name)
+);
+
+-- RLS Policies for folders
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own folders" ON public.folders
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own folders" ON public.folders
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own folders" ON public.folders
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own folders" ON public.folders
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- =====================================================
+-- 6. BOOKMARKS TABLE (User Bookmarks)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.bookmarks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -224,49 +267,6 @@ CREATE POLICY "Users can update own bookmarks" ON public.bookmarks
   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own bookmarks" ON public.bookmarks
-  FOR DELETE USING (auth.uid() = user_id);
-
--- =====================================================
--- 6. FOLDERS TABLE (Bookmark Organization)
--- =====================================================
-CREATE TABLE IF NOT EXISTS public.folders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  parent_folder_id UUID REFERENCES public.folders(id) ON DELETE CASCADE,
-  
-  -- Folder details
-  name TEXT NOT NULL,
-  description TEXT,
-  icon TEXT, -- Icon name or emoji
-  color TEXT, -- Hex color code
-  
-  -- Auto-categorization rules
-  auto_categorize BOOLEAN DEFAULT FALSE,
-  keywords TEXT[], -- Keywords for automatic categorization
-  
-  -- Organization
-  sort_order INTEGER DEFAULT 0,
-  
-  -- Metadata
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  UNIQUE(user_id, name)
-);
-
--- RLS Policies for folders
-ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own folders" ON public.folders
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own folders" ON public.folders
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own folders" ON public.folders
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own folders" ON public.folders
   FOR DELETE USING (auth.uid() = user_id);
 
 -- =====================================================
@@ -364,7 +364,7 @@ CREATE TRIGGER update_folders_updated_at BEFORE UPDATE ON public.folders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_usage_stats_updated_at BEFORE UPDATE ON public.usage_stats
-  FOR EACH ROW EXECUTE FUNCTION update_usage_stats_column();
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function: Deduct usage quota when voice command is logged
 CREATE OR REPLACE FUNCTION deduct_voice_usage()
